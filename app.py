@@ -6,7 +6,7 @@ from PIL import Image
 # PAGE CONFIGURATION
 # -----------------------------
 st.set_page_config(
-    page_title="AI Vision Prompt Generator",
+    page_title="Roseey Personalized Generator",
     page_icon="📸",
     layout="centered"
 )
@@ -20,22 +20,20 @@ def get_model():
     if not api_key:
         return None
     genai.configure(api_key=api_key)
-    # Baking the quality rules into the model instructions permanently
     return genai.GenerativeModel(
         "gemini-3.5-flash",
         system_instruction=(
             "You are an elite expert prompt engineer and professional cinematographer. "
-            "Your output must prioritize: 1. Anatomical perfection (5 fingers, correct joints, no morphing). "
-            "2. Product integrity (geometric accuracy, no warping). 3. Cinematic realism (8k, sharp focus, "
-            "proper depth of field). Never output artifacts or 'AI-look' distortions. "
+            "Your output must prioritize: 1. Anatomical perfection. 2. Product integrity. "
+            "3. Cinematic realism (8k, sharp focus, proper depth of field). "
             "Always use technical photography and cinematography terminology."
         )
     )
 
 model = get_model()
 
-st.title("📸 AI Vision Prompt Generator")
-st.caption("Generate professional prompts from reference images.")
+st.title("📸 Roseey Personalized Generator")
+st.caption("Generate professional, personalized prompts from reference images.")
 
 # -----------------------------
 # SIDEBAR / FORM INPUT
@@ -44,8 +42,17 @@ with st.sidebar:
     st.header("Configure Prompt")
     
     with st.form("prompt_form"):
+        # Original fields
         platform = st.selectbox("📸 PLATFORM", ["ChatGPT Images", "Grok", "Gemini", "Midjourney", "Flux", "Veo", "Kling", "Hailuo", "Meta AI Video", "YouTube AI"])
         gen_type = st.selectbox("🎯 GENERATE", ["Photo Prompt", "Video Prompt", "Thumbnail Prompt", "Everything"])
+        
+        # New: Voiceover Selection
+        voiceover = st.selectbox(
+            "🎙️ VOICEOVER", 
+            ["No Voiceover", "Native Filipina Speaker", "English Speaker", "Custom Language"]
+        )
+        custom_lang = st.text_input("If 'Custom Language', specify here:")
+
         product = st.selectbox("📦 PRODUCT", ["Makeup", "Skincare", "Clothing", "Footwear", "Kitchenware", "Home Product", "Toy", "School Supply", "Electronics", "Other"])
         shot_type = st.selectbox("📷 SHOT TYPE", ["Product Close-up", "Handheld", "Mirror Selfie", "Mirror Video", "Lifestyle", "Full Body", "Half Body", "Feet Focus", "Hand Focus"])
         background = st.selectbox("🏠 BACKGROUND", ["Home", "Bedroom", "Living Room", "Kitchen", "Bathroom", "Vanity", "Laundry Area", "Cafe", "Street", "Garden", "Beach", "Pool", "Front Yard", "Studio", "Custom"])
@@ -83,11 +90,13 @@ if submitted and uploaded_file and model:
     with st.spinner("Engineering high-fidelity prompt..."):
         final_bg = custom_bg if background == "Custom" else background
         rules_text = ", ".join(rules) if rules else "None"
+        selected_voice = f"{voiceover} ({custom_lang})" if voiceover == "Custom Language" else voiceover
         
         prompt_instructions = f"""
         Analyze the provided reference image. Generate a professional prompt based on these parameters:
         
         - Platform: {platform}
+        - Voiceover Preference: {selected_voice}
         - Type: {gen_type}
         - Product: {product}
         - Shot: {shot_type}
