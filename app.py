@@ -10,49 +10,56 @@ if api_key:
 
 st.title("📸 AI Vision Prompt Generator")
 
-# Sidebar - ALL your original options included
+# Sidebar - Full list
 with st.sidebar:
     st.header("Configure Prompt")
     platform = st.selectbox("📸 PLATFORM", ["ChatGPT Images", "Grok", "Gemini", "Midjourney", "Flux", "Veo", "Kling", "Hailuo", "Meta AI Video", "YouTube AI"])
     gen_type = st.selectbox("🎯 GENERATE", ["Photo Prompt", "Video Prompt", "Thumbnail Prompt", "Everything"])
     product = st.selectbox("📦 PRODUCT", ["Makeup", "Skincare", "Clothing", "Footwear", "Kitchenware", "Home Product", "Toy", "School Supply", "Electronics", "Other"])
     shot_type = st.selectbox("📷 SHOT TYPE", ["Product Close-up", "Handheld", "Mirror Selfie", "Mirror Video", "Lifestyle", "Full Body", "Half Body", "Feet Focus", "Hand Focus"])
+    
+    # Background logic
     background = st.selectbox("🏠 BACKGROUND", ["Home", "Bedroom", "Living Room", "Kitchen", "Bathroom", "Vanity", "Laundry Area", "Cafe", "Street", "Garden", "Beach", "Pool", "Front Yard", "Studio", "Custom"])
+    custom_bg = st.text_input("If 'Custom', describe it (e.g., white wall aesthetic kitchen)")
+    
     lighting = st.selectbox("☀️ LIGHTING", ["Natural", "Bright Commercial", "Soft Studio", "Luxury", "Moody"])
     model_type = st.selectbox("🧍 MODEL", ["None", "Hand Only", "Feet Only", "Half Body", "Full Body", "Walking", "Sitting"])
     style = st.selectbox("✨ STYLE", ["UGC", "Product Showcase", "Modeling", "Lifestyle", "Problem-Solution", "Review"])
     rules = st.multiselect("📋 RULES", ["Design Lock", "Face Lock", "No Face", "No Script", "With Script"])
     extra = st.text_area("📝 EXTRA DETAILS")
 
-# Mobile-Friendly Input Tabs
+# Mobile-Friendly Input
 tab1, tab2 = st.tabs(["📸 Use Camera", "📁 Upload from Gallery"])
-
 uploaded_file = None
-with tab1:
-    camera_file = st.camera_input("Take a photo")
-    if camera_file:
-        uploaded_file = camera_file
-with tab2:
-    file_file = st.file_uploader("Choose a photo", type=['jpg', 'png'])
-    if file_file:
-        uploaded_file = file_file
+with tab1: camera_file = st.camera_input("Take a photo"); uploaded_file = camera_file
+with tab2: file_file = st.file_uploader("Choose a photo", type=['jpg', 'png']); uploaded_file = file_file
 
-# Processing logic
 if uploaded_file and api_key:
     image = Image.open(uploaded_file)
     st.image(image, caption="Reference Image", use_column_width=True)
     
     if st.button("GENERATE PROMPT"):
         with st.spinner("Analyzing..."):
+            final_bg = custom_bg if background == "Custom" else background
             rules_text = ', '.join(rules)
+            
+            # The "Magic" layer: Force AI to be realistic/accurate
+            prompt_instructions = (
+with st.spinner("Analyzing..."):
+            final_bg = custom_bg if background == "Custom" else background
+            rules_text = ', '.join(rules)
+            
+            # The "Magic" layer: Force accuracy and avoid AI errors
             prompt_instructions = (
                 f"Analyze this image and create a professional prompt for {platform}. "
-                f"Generate: {gen_type} | Product: {product} | Shot: {shot_type} | "
-                f"Background: {background} | Lighting: {lighting} | Model: {model_type} | "
-                f"Style: {style} | Rules: {rules_text} | Extra: {extra}"
+                f"Generate: {gen_type} | Product: {product} | Shot: {shot_type} | Background: {final_bg} | "
+                f"Lighting: {lighting} | Model: {model_type} | Style: {style} | Rules: {rules_text}. "
+                f"TECHNICAL QUALITY & ACCURACY RULES: 1. Ensure absolute anatomical correctness (no extra fingers, no fused limbs, realistic hand/feet structures). 2. Maintain structural integrity of the product (no distortion, no melting shapes). 3. Use cinematic, hyper-realistic, 8k resolution standards with sharp focus and professional lighting. 4. {extra}"
             )
+            
+            response = model.generate_content([prompt_instructions, image])
+            )
+            
             response = model.generate_content([prompt_instructions, image])
             st.subheader("Generated Prompt:")
             st.code(response.text, language='text')
-elif not api_key:
-    st.error("API Key not found in Settings > Secrets.")
