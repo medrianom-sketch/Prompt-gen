@@ -4,7 +4,11 @@ from PIL import Image
 
 # This will automatically pull the key you saved in Settings > Secrets
 api_key = st.secrets.get("GOOGLE_API_KEY")
-
+# Diagnostic: Print available models
+st.write("--- Available Models ---")
+for m in genai.list_models():
+    if 'generateContent' in m.supported_generation_methods:
+        st.write(m.name)
 if api_key:
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-1.5-flash')
