@@ -11,7 +11,7 @@ for m in genai.list_models():
         st.write(m.name)
 if api_key:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-3.5-flash')
 
 st.title("📸 AI Vision Prompt Generator")
 uploaded_file = st.file_uploader("Upload reference photo", type=['jpg', 'png'])
