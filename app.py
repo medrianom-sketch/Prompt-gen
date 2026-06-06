@@ -43,17 +43,29 @@ if 'engineered_prompt' not in st.session_state:
 # 4. Step 1: Prompt Generation
 st.subheader("Step 1: Generate Prompt")
 
-# Always show the button, but handle the logic when it's clicked
-if st.button("🚀 Generate Prompt"):
-    if uploaded_file:
-        with st.spinner("Engineering prompt..."):
+if st.button("🚀 Step 1: Generate Prompt"):
+    with st.spinner("Engineering prompt..."):
+        # Construct the base text prompt
+        prompt_text = (f"Create a professional {gen_type} for {platform}. "
+                       f"Product: {product}. Shot: {shot_type}. Background: {background}. "
+                       f"Lighting: {lighting}. Style: {style}. Rules: {', '.join(rules)}. {extra}")
+        
+        # Prepare content: include image only if it exists
+        contents = [prompt_text]
+        if uploaded_file is not None:
             image = Image.open(uploaded_file)
-            # ... (rest of your generation logic)
+            contents.append(image)
+        
+        # Call the model
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.0-flash", 
+                contents=contents
+            )
             st.session_state['engineered_prompt'] = response.text
             st.success("Prompt engineered!")
-    else:
-        # This shows a clear message if they click without uploading
-        st.warning("⚠️ Please upload a reference photo first!")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
 # 5. Step 2: Image Generation
 if st.session_state['engineered_prompt']:
