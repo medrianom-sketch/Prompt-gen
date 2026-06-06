@@ -75,44 +75,31 @@ if st.session_state['engineered_prompt']:
     
     if st.button("🎨 Step 2: Create Image"):
         with st.spinner("Generating image..."):
-         try: # Existing try from line 79
-            img_response = client.models.generate_content(...)
-  
-            # Use the new safety check here
-            if img_response and img_response.candidates and img_response.candidates[0].content.parts:
-                for part in img_response.candidates[0].content.parts:
-                    if part.inline_data:
-                        img_bytes = part.inline_data.data
-                        st.image(Image.open(io.BytesIO(img_bytes)), use_container_width=True)
-                        st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
-            else:
-                st.error("Generation failed: No valid image received.")
-        
-        except Exception as e:
-            # This is the block that was missing
-            st.error(f"An error occurred: {e}")
+            try:
+                # Make the API call once
                 img_response = client.models.generate_content(
                     model='gemini-3.5-flash',
                     contents=final_prompt,
                     config=types.GenerateContentConfig(
                         response_modalities=["IMAGE"],
-                    )
+                    ),
                 )
                 
-                # Extract image bytes
-# Extract image bytes
-    if img_response and img_response.candidates and img_response.candidates[0].content.parts:
-        found_image = False
-        for part in img_response.candidates[0].content.parts:
-            if part.inline_data:
-                img_bytes = part.inline_data.data
-                st.image(Image.open(io.BytesIO(img_bytes)), use_container_width=True)
-                st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
-                found_image = True
-        
-        if not found_image:
-            st.error("The model generated content, but no image data was found.")
-    else:
-        st.error("Generation failed: No valid response received from the model. It may be due to safety filters.")
+                # Check if we have a valid response
+                if img_response and img_response.candidates and img_response.candidates[0].content.parts:
+                    found_image = False
+                    for part in img_response.candidates[0].content.parts:
+                        if part.inline_data:
+                            img_bytes = part.inline_data.data
+                            st.image(Image.open(io.BytesIO(img_bytes)), use_container_width=True)
+                            st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
+                            found_image = True
+                    
+                    if not found_image:
+                        st.error("The model generated a response, but no image data was found.")
+                else:
+                    st.error("Generation failed: No valid response received from the model. It may be due to safety filters.")
+
             except Exception as e:
+                # This catches any errors (like API connection issues) without crashing the app
                 st.error(f"Generation Error: {e}")
