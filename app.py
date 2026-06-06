@@ -64,4 +64,33 @@ if uploaded_file and api_key:
             
             response = model.generate_content([prompt_instructions, image])
             st.subheader("Generated Prompt:")
+            # ... (your existing setup code) ...
+
+if submitted and uploaded_files and model:
+    # ... (your existing prompt engineering logic) ...
+    
+    with st.spinner("Engineering high-fidelity prompt..."):
+        # 1. Generate the Text Prompt (as you have been doing)
+        prompt_instructions = f"..." 
+        response_text = model.generate_content(contents).text
+        st.code(response_text)
+        
+        # 2. Trigger Image Generation (The new addition)
+        if st.button("🎨 Generate Image from Prompt"):
+            try:
+                # Use the Imagen model via the GenAI SDK
+                img_response = client.models.generate_images(
+                    model='imagen-4.0-generate-001',
+                    prompt=response_text,
+                    config=types.GenerateImagesConfig(number_of_images=1)
+                )
+                
+                for generated_image in img_response.generated_images:
+                    img_bytes = generated_image.image.image_bytes
+                    image = Image.open(io.BytesIO(img_bytes))
+                    
+                    st.image(image, caption="Generated Result")
+                    st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
+            except Exception as e:
+                st.error(f"Image generation failed: {e}")
             st.code(response.text, language='text')
