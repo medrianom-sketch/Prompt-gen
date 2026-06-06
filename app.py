@@ -7,6 +7,7 @@ import io
 # 1. Configuration
 st.set_page_config(page_title="Roseey Personalized Generator", layout="wide")
 api_key = st.secrets.get("GOOGLE_API_KEY")
+
 if api_key:
     client = genai.Client(api_key=api_key)
 
@@ -45,25 +46,25 @@ with st.sidebar:
         rules = st.multiselect("RULES", ["Design Lock", "Face Lock", "No Face", "No Script", "With Script"])
         extra = st.text_area("EXTRA DETAILS")
 
-# 3. Mobile-Optimized File Upload
-# accept_multiple_files=True is kept here; if it fails on your specific Android device, 
-# change to False to force a single-image workflow.
-uploaded_files = st.file_uploader("Upload Reference Photos", type=['jpg', 'png'], accept_multiple_files=True)
+# 3. Mobile-Reliable Upload
+# Using a single-file uploader is the most robust way to handle mobile browser limitations.
+uploaded_file = st.file_uploader("Upload Reference Photo", type=['jpg', 'png'])
 
 if 'engineered_prompt' not in st.session_state:
     st.session_state['engineered_prompt'] = ""
 
 # 4. Step 1: Prompt Generation
-if uploaded_files and st.button("🚀 Step 1: Generate Prompt"):
+if uploaded_file and st.button("🚀 Step 1: Generate Prompt"):
     with st.spinner("Engineering prompt..."):
-        image_list = [Image.open(f) for f in uploaded_files]
+        image = Image.open(uploaded_file)
         prompt_text = (f"Create a professional {gen_type} for {platform}. "
                        f"Product: {product}. Shot: {shot_type}. Background: {background}. "
                        f"Lighting: {lighting}. Style: {style}. Rules: {', '.join(rules)}. {extra}")
         
+        # Use current stable model
         response = client.models.generate_content(
             model="gemini-3.5-flash", 
-            contents=[prompt_text] + image_list
+            contents=[prompt_text, image]
         )
         st.session_state['engineered_prompt'] = response.text
         st.success("Prompt engineered!")
@@ -74,16 +75,23 @@ if st.session_state['engineered_prompt']:
     final_prompt = st.text_area("Edit if needed:", st.session_state['engineered_prompt'], height=150)
     
     if st.button("🎨 Step 2: Create Image"):
-        with st.spinner("Generating..."):
+        with st.spinner("Generating image..."):
             try:
-                img_response = client.models.generate_images(
-                    model='gemini-3.1-flash-image',
-                    prompt=final_prompt,
-                    config=types.GenerateImagesConfig(number_of_images=1)
+                # Use current stable image method
+                # Note: Newer SDKs often use generate_content with image modalities
+                img_response = client.models.generate_content(
+                    model='gemini-3.5-flash',
+                    contents=final_prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["IMAGE"],
+                    )
                 )
-                for gen_img in img_response.generated_images:
-                    img_bytes = gen_img.image.image_bytes
-                    st.image(Image.open(io.BytesIO(img_bytes)), use_container_width=True)
-                    st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
+                
+                # Extract image bytes
+                for part in img_response.candidates[0].content.parts:
+                    if part.inline_data:
+                        img_bytes = part.inline_data.data
+                        st.image(Image.open(io.BytesIO(img_bytes)), use_container_width=True)
+                        st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
             except Exception as e:
                 st.error(f"Generation Error: {e}")
