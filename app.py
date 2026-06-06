@@ -76,9 +76,22 @@ if st.session_state['engineered_prompt']:
     
     if st.button("🎨 Step 2: Create Image"):
         with st.spinner("Generating image..."):
-            try:
-                # Use current stable image method
-                # Note: Newer SDKs often use generate_content with image modalities
+         try: # Existing try from line 79
+            img_response = client.models.generate_content(...)
+  
+            # Use the new safety check here
+            if img_response and img_response.candidates and img_response.candidates[0].content.parts:
+                for part in img_response.candidates[0].content.parts:
+                    if part.inline_data:
+                        img_bytes = part.inline_data.data
+                        st.image(Image.open(io.BytesIO(img_bytes)), use_container_width=True)
+                        st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
+            else:
+                st.error("Generation failed: No valid image received.")
+        
+        except Exception as e:
+            # This is the block that was missing
+            st.error(f"An error occurred: {e}")
                 img_response = client.models.generate_content(
                     model='gemini-3.5-flash',
                     contents=final_prompt,
