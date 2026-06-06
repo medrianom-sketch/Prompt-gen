@@ -82,8 +82,9 @@ if st.session_state['engineered_prompt']:
                     contents=final_prompt,
                     config=types.GenerateContentConfig(
                         response_modalities=["IMAGE"],
-                    ),
-                )
+               config=types.GenerateContentConfig(
+    response_modalities=["TEXT", "IMAGE"], # Ensure both are listed!
+),
                 
                 # Check if we have a valid response
                 if img_response and img_response.candidates and img_response.candidates[0].content.parts:
