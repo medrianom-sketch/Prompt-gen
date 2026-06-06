@@ -88,10 +88,19 @@ if st.session_state['engineered_prompt']:
                 )
                 
                 # Extract image bytes
-                for part in img_response.candidates[0].content.parts:
-                    if part.inline_data:
-                        img_bytes = part.inline_data.data
-                        st.image(Image.open(io.BytesIO(img_bytes)), use_container_width=True)
-                        st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
+# Extract image bytes
+    if img_response and img_response.candidates and img_response.candidates[0].content.parts:
+        found_image = False
+        for part in img_response.candidates[0].content.parts:
+            if part.inline_data:
+                img_bytes = part.inline_data.data
+                st.image(Image.open(io.BytesIO(img_bytes)), use_container_width=True)
+                st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
+                found_image = True
+        
+        if not found_image:
+            st.error("The model generated content, but no image data was found.")
+    else:
+        st.error("Generation failed: No valid response received from the model. It may be due to safety filters.")
             except Exception as e:
                 st.error(f"Generation Error: {e}")
