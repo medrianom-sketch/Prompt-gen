@@ -77,7 +77,7 @@ if st.session_state['engineered_prompt']:
         with st.spinner("Generating..."):
             try:
                 img_response = client.models.generate_images(
-                    model='imagen-3.0-generate-002',
+                    model='gemini-3.1-flash-image',
                     prompt=final_prompt,
                     config=types.GenerateImagesConfig(number_of_images=1)
                 )
