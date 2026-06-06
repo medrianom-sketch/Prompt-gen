@@ -13,41 +13,28 @@ if api_key:
 
 st.title("📸 Roseey Personalized Generator")
 
-# 2. Sidebar with Full Options and Dynamic 'Custom' Inputs
+# 2. Sidebar Configuration
 with st.sidebar:
     st.header("⚙️ Configuration")
-    
     with st.expander("🎥 Media & Platform", expanded=True):
-        platform = st.selectbox("PLATFORM", ["Midjourney", "Flux", "Gemini", "YouTube AI", "Meta AI", "Grok", "Veo", "Kling", "Hailuo", "Other"])
-        gen_type = st.selectbox("GENERATE", ["Photo Prompt", "Video Prompt", "Thumbnail Prompt", "Everything"])
-        voiceover = st.selectbox("VOICEOVER", ["Native Filipina Speaker", "English Speaker", "No Voiceover", "Custom Language"])
-        if voiceover == "Custom Language":
-            custom_lang = st.text_input("Specify custom language")
-
+        platform = st.selectbox("PLATFORM", ["Midjourney", "Flux", "Gemini", "Other"])
+        gen_type = st.selectbox("GENERATE", ["Photo Prompt", "Video Prompt"])
+        voiceover = st.selectbox("VOICEOVER", ["Native Filipina Speaker", "English Speaker", "No Voiceover"])
+    
     with st.expander("📦 Product & Shot"):
-        prod_list = ["Makeup", "Skincare", "Clothing", "Footwear", "Kitchenware", "Home Product", "Toy", "School Supply", "Electronics", "Other"]
-        product = st.selectbox("PRODUCT", prod_list)
-        if product == "Other":
-            product = st.text_input("Describe Product")
-        shot_type = st.selectbox("SHOT TYPE", ["Product Close-up", "Handheld", "Mirror Selfie", "Mirror Video", "Lifestyle", "Full Body", "Half Body", "Feet Focus", "Hand Focus"])
+        product = st.text_input("Product Description", "Skincare bottle")
+        shot_type = st.selectbox("SHOT TYPE", ["Product Close-up", "Lifestyle", "Full Body"])
 
     with st.expander("🏠 Environment & Lighting"):
-        bg_list = ["Home", "Bedroom", "Living Room", "Kitchen", "Bathroom", "Vanity", "Laundry Area", "Cafe", "Street", "Garden", "Beach", "Pool", "Front Yard", "Studio", "Custom"]
-        background = st.selectbox("BACKGROUND", bg_list)
-        if background == "Custom":
-            background = st.text_input("Describe custom background")
-        lighting = st.selectbox("LIGHTING", ["Natural", "Bright Commercial", "Soft Studio", "Luxury", "Moody"])
+        background = st.text_input("Background", "Modern minimalist studio")
+        lighting = st.selectbox("LIGHTING", ["Natural", "Bright Commercial", "Soft Studio"])
 
     with st.expander("🧍 Model & Style"):
-        model_type = st.selectbox("MODEL", ["None", "Hand Only", "Feet Only", "Half Body", "Full Body", "Walking", "Sitting"])
-        style = st.selectbox("STYLE", ["UGC", "Product Showcase", "Modeling", "Lifestyle", "Problem-Solution", "Review"])
-
-    with st.expander("📋 Rules & Details"):
-        rules = st.multiselect("RULES", ["Design Lock", "Face Lock", "No Face", "No Script", "With Script"])
+        style = st.selectbox("STYLE", ["UGC", "Product Showcase", "Lifestyle"])
+        rules = st.multiselect("RULES", ["No Face", "With Script"])
         extra = st.text_area("EXTRA DETAILS")
 
-# 3. Mobile-Reliable Upload
-# Using a single-file uploader is the most robust way to handle mobile browser limitations.
+# 3. File Upload
 uploaded_file = st.file_uploader("Upload Reference Photo", type=['jpg', 'png'])
 
 if 'engineered_prompt' not in st.session_state:
@@ -57,17 +44,17 @@ if 'engineered_prompt' not in st.session_state:
 if uploaded_file and st.button("🚀 Step 1: Generate Prompt"):
     with st.spinner("Engineering prompt..."):
         image = Image.open(uploaded_file)
-        prompt_text = (f"Create a professional {gen_type} for {platform}. "
+        prompt_text = (f"Create a detailed professional prompt for {platform}. "
                        f"Product: {product}. Shot: {shot_type}. Background: {background}. "
                        f"Lighting: {lighting}. Style: {style}. Rules: {', '.join(rules)}. {extra}")
         
-        # Use current stable model
         response = client.models.generate_content(
-            model="gemini-3.5-flash", 
+            model="gemini-2.0-flash", 
             contents=[prompt_text, image]
         )
         st.session_state['engineered_prompt'] = response.text
         st.success("Prompt engineered!")
+
 # 5. Step 2: Image Generation
 if st.session_state['engineered_prompt']:
     st.subheader("Final Prompt Review")
@@ -76,31 +63,21 @@ if st.session_state['engineered_prompt']:
     if st.button("🎨 Step 2: Create Image"):
         with st.spinner("Generating image..."):
             try:
-                # Make the API call once
-                img_response = client.models.generate_content(
-                    model='gemini-3.5-flash',
-                    contents=final_prompt,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["IMAGE"],
-               config=types.GenerateContentConfig(
-    response_modalities=["TEXT", "IMAGE"], # Ensure both are listed!
-),
+                # Use a model capable of image generation (e.g., imagen-3.0)
+                # Note: Verify your specific API project access for image generation models
+                result = client.models.generate_images(
+                    model='imagen-3.0-generate-002',
+                    prompt=final_prompt,
+                    config=types.GenerateImagesConfig(number_of_images=1)
+                )
                 
-                # Check if we have a valid response
-                if img_response and img_response.candidates and img_response.candidates[0].content.parts:
-                    found_image = False
-                    for part in img_response.candidates[0].content.parts:
-                        if part.inline_data:
-                            img_bytes = part.inline_data.data
-                            st.image(Image.open(io.BytesIO(img_bytes)), use_container_width=True)
-                            st.download_button("📥 Download", img_bytes, "roseey_result.png", "image/png")
-                            found_image = True
-                    
-                    if not found_image:
-                        st.error("The model generated a response, but no image data was found.")
+                if result.generated_images:
+                    for generated_image in result.generated_images:
+                        image = Image.open(io.BytesIO(generated_image.image.image_bytes))
+                        st.image(image, use_container_width=True)
+                        st.download_button("📥 Download", generated_image.image.image_bytes, "roseey_result.png", "image/png")
                 else:
-                    st.error("Generation failed: No valid response received from the model. It may be due to safety filters.")
+                    st.error("No images returned.")
 
             except Exception as e:
                 st.error(f"Error details: {e}")
-                # This will show you the exact error code from Google
