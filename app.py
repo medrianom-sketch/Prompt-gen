@@ -68,7 +68,6 @@ if uploaded_file and st.button("🚀 Step 1: Generate Prompt"):
         )
         st.session_state['engineered_prompt'] = response.text
         st.success("Prompt engineered!")
-
 # 5. Step 2: Image Generation
 if st.session_state['engineered_prompt']:
     st.subheader("Final Prompt Review")
