@@ -101,5 +101,5 @@ if st.session_state['engineered_prompt']:
                     st.error("Generation failed: No valid response received from the model. It may be due to safety filters.")
 
             except Exception as e:
-    st.error(f"Error details: {e}")
-    # This will show you the exact error code from Google
+                st.error(f"Error details: {e}")
+                # This will show you the exact error code from Google
