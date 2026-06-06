@@ -20,13 +20,16 @@ def get_model():
     if not api_key:
         return None
     genai.configure(api_key=api_key)
+    # Model initialized with core "Hidden Rules" for accuracy and physics
     return genai.GenerativeModel(
         "gemini-3.5-flash",
         system_instruction=(
-            "You are an elite expert prompt engineer and professional cinematographer. "
-            "Your output must prioritize: 1. Anatomical perfection. 2. Product integrity. "
-            "3. Cinematic realism (8k, sharp focus, proper depth of field). "
-            "Always use technical photography and cinematography terminology."
+            "You are an expert AI cinematographic director and prompt engineer. "
+            "STRICT RULES: "
+            "1. ANATOMY: Absolute correctness (5 fingers, natural joints, no warping). "
+            "2. PHYSICS & MOTION: Movements must obey laws of physics, maintain gravity/weight distribution. "
+            "3. PRODUCT: Maintain structural integrity, no warping. "
+            "4. TERMINOLOGY: Use professional 8k cinematography and animation vocabulary."
         )
     )
 
@@ -42,15 +45,10 @@ with st.sidebar:
     st.header("Configure Prompt")
     
     with st.form("prompt_form"):
-        # Original fields
         platform = st.selectbox("📸 PLATFORM", ["ChatGPT Images", "Grok", "Gemini", "Midjourney", "Flux", "Veo", "Kling", "Hailuo", "Meta AI Video", "YouTube AI"])
         gen_type = st.selectbox("🎯 GENERATE", ["Photo Prompt", "Video Prompt", "Thumbnail Prompt", "Everything"])
         
-        # New: Voiceover Selection
-        voiceover = st.selectbox(
-            "🎙️ VOICEOVER", 
-            ["No Voiceover", "Native Filipina Speaker", "English Speaker", "Custom Language"]
-        )
+        voiceover = st.selectbox("🎙️ VOICEOVER", ["No Voiceover", "Native Filipina Speaker", "English Speaker", "Custom Language"])
         custom_lang = st.text_input("If 'Custom Language', specify here:")
 
         product = st.selectbox("📦 PRODUCT", ["Makeup", "Skincare", "Clothing", "Footwear", "Kitchenware", "Home Product", "Toy", "School Supply", "Electronics", "Other"])
@@ -67,33 +65,32 @@ with st.sidebar:
         submitted = st.form_submit_button("🚀 GENERATE PROMPT")
 
 # -----------------------------
-# IMAGE INPUT
+# IMAGE INPUT (Multiple)
 # -----------------------------
-tab1, tab2 = st.tabs(["📸 Use Camera", "📁 Upload from Gallery"])
-uploaded_file = None
-
-with tab1:
-    camera_file = st.camera_input("Take a photo")
-    if camera_file: uploaded_file = camera_file
-
-with tab2:
-    gallery_file = st.file_uploader("Choose a photo", type=["jpg", "jpeg", "png"])
-    if gallery_file: uploaded_file = gallery_file
+uploaded_files = st.file_uploader(
+    "📁 Upload Reference Images", 
+    type=["jpg", "jpeg", "png"], 
+    accept_multiple_files=True
+)
 
 # -----------------------------
 # GENERATION LOGIC
 # -----------------------------
-if submitted and uploaded_file and model:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Reference Image", use_container_width=True)
+if submitted and uploaded_files and model:
+    # Display uploaded images
+    cols = st.columns(min(len(uploaded_files), 3))
+    for i, file in enumerate(uploaded_files):
+        img = Image.open(file)
+        cols[i % 3].image(img, use_container_width=True)
     
     with st.spinner("Engineering high-fidelity prompt..."):
         final_bg = custom_bg if background == "Custom" else background
         rules_text = ", ".join(rules) if rules else "None"
         selected_voice = f"{voiceover} ({custom_lang})" if voiceover == "Custom Language" else voiceover
         
+        # Build prompt instructions
         prompt_instructions = f"""
-        Analyze the provided reference image. Generate a professional prompt based on these parameters:
+        Analyze these reference images. Generate a professional prompt based on these parameters:
         
         - Platform: {platform}
         - Voiceover Preference: {selected_voice}
@@ -108,20 +105,24 @@ if submitted and uploaded_file and model:
         - Rules: {rules_text}
         - Additional Details: {extra}
 
-        INTERNAL VERIFICATION: Ensure the generated prompt contains specific technical keywords 
-        to force the AI to avoid extra limbs, fused fingers, and distorted product geometry.
-        Use professional lighting and camera lens terminology.
+        BODY MECHANICS: Ensure all movements (walking, sitting, hand gestures) are fluid, biomechanically accurate, and grounded in physics.
+        INTERNAL VERIFICATION: Avoid anatomical errors (extra fingers, limbs) and warped geometry.
         """
         
+        # Prepare content list (Prompt + Images)
+        contents = [prompt_instructions]
+        for file in uploaded_files:
+            contents.append(Image.open(file))
+        
         try:
-            response = model.generate_content([prompt_instructions, image])
+            response = model.generate_content(contents)
             st.success("Prompt generated successfully!")
             st.subheader("Generated Output")
             st.code(response.text, language="text")
         except Exception as e:
             st.error(f"Error: {str(e)}")
 
-elif submitted and not uploaded_file:
-    st.warning("Please upload or take a photo first!")
+elif submitted and not uploaded_files:
+    st.warning("Please upload at least one image first!")
 elif submitted and not model:
     st.error("API Key not found. Please check your Streamlit secrets.")
